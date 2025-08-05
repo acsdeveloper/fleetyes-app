@@ -97,6 +97,20 @@ yarn ios
 yarn android
 ```
 
+### This issue occurs due to a compatibility problem between the versions of **React Native** and **React Native Reanimated**.
+
+To resolve this, you'll need to update the following dependencies:
+
+- **React Native** to version `0.77.3`	
+- **React Native Reanimated** to version `3.16.7`
+
+### Steps to Resolve:
+
+1. Update the `react-native` version in your `package.json` file:
+
+```json
+"react-native": "0.77.3" or "react-native": "0.77.0-rc.6"
+
 ### Documentation
 
 See the [documentation webpage](https://fleetbase.io/docs).
