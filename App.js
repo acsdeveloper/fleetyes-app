@@ -13,13 +13,14 @@ import tailwind from 'tailwind-rn';
 import { getString, setString } from 'utils/Storage';
 import CoreStack from './src/features/Core/CoreStack';
 import { useFleetbase } from './src/hooks';
+import { ThemeProvider } from './src/ThemeContext'; // Adjust the path to your ThemeContext
 import { config } from './src/utils';
 import { useDriver } from './src/utils/Auth';
 
 const Stack = createStackNavigator();
 
 const linking = {
-    prefixes: ['https://fleetbase.io', 'flbnavigator://', config('APP_LINK_PREFIX'), ...config('app.linkingPrefixes')].filter(Boolean),
+    prefixes: ['https://afp-api.fleetyes.com', 'flbnavigator://', config('APP_LINK_PREFIX'), ...config('app.linkingPrefixes')].filter(Boolean),
     config: {
         screens: {},
     },
@@ -95,7 +96,7 @@ const App: () => Node = () => {
                     text1: `Activity synced.`,
                 });
                 success.push(index);
-                console.log('Sync sucess: ', res);
+                console.log('Sync success: ', res);
             })
             .catch(error => {
                 console.log('attributes error----->', error);
@@ -186,24 +187,26 @@ const App: () => Node = () => {
     }, []);
 
     return (
-        <>
-            <NavigationContainer
-                ref={navigationRef}
-                linking={linking}
-                fallback={
-                    <View style={tailwind('bg-gray-800 flex items-center justify-center w-full h-full')}>
-                        <View style={tailwind('flex items-center justify-center')}>
-                            <ActivityIndicator style={tailwind('mb-4')} />
-                            <Text style={tailwind('text-gray-400')}>Loading...</Text>
+        <ThemeProvider>
+            <>
+                <NavigationContainer
+                    ref={navigationRef}
+                    linking={linking}
+                    fallback={
+                        <View style={tailwind('bg-gray-800 flex items-center justify-center w-full h-full')}>
+                            <View style={tailwind('flex items-center justify-center')}>
+                                <ActivityIndicator style={tailwind('mb-4')} />
+                                <Text style={tailwind('text-gray-400 montserrat-bold')}>Loading...</Text>
+                            </View>
                         </View>
-                    </View>
-                }>
-                <Stack.Navigator>
-                    <Stack.Screen name="CoreStack" component={CoreStack} options={{ headerShown: false, animationEnabled: false, gestureEnabled: false }} />
-                </Stack.Navigator>
-            </NavigationContainer>
-            <Toast />
-        </>
+                    }>
+                    <Stack.Navigator>
+                        <Stack.Screen name="CoreStack" component={CoreStack} options={{ headerShown: false, animationEnabled: false, gestureEnabled: false }} />
+                    </Stack.Navigator>
+                </NavigationContainer>
+                <Toast />
+            </>
+        </ThemeProvider>
     );
 };
 
