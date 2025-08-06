@@ -1,0 +1,425 @@
+workflows:
+
+    FleetYes-android-live:
+        name: FleetYes Android live
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        environment:
+          groups:
+            - live
+          android_signing:
+            - fleetyesafp
+          vars:
+            PACKAGE_NAME: "com.fleetyes.afp" # <-- Put your package name here e.g. com.domain.myapp
+          node: v19.7.0
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps
+            # - name: Set Android SDK location
+            #   script: |
+            #     echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties" 
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+                echo "ANDROID_VERSION_NAME=$ANDROID_VERSION_NAME" >> .env
+                echo "ANDROID_VERSION_CODE=$ANDROID_VERSION_CODE" >> .env
+           
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Bundle React Native code and assets
+              script: | 
+                npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+            - name: Clean bundled resources
+              script: |
+                cd android
+                rm -rf app/src/main/res/raw
+                rm -rf app/src/main/res/drawable-*
+
+            - name: Build Android release
+              script: |
+                cd android
+                chmod +x gradlew
+                ./gradlew clean
+                ./gradlew assembleRelease
+                ./gradlew bundleRelease
+                
+        artifacts:
+            - android/app/build/outputs/**/*.apk
+            - android/app/build/outputs/**/*.aab
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true     # To not receive a notification when a build succeeds
+              failure: false    # To not receive a notification when a build fails
+
+    FleetYes-ios-live:
+        name: FleetYes iOS live
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        integrations:
+          app_store_connect: fastlane
+        environment:
+          groups:
+            - live
+          ios_signing:
+            distribution_type: app_store
+            bundle_identifier: com.fleetyes.afp
+          vars:
+            XCODE_WORKSPACE: "FleetYes.xcworkspace" # <-- Put the name of your Xcode workspace here
+            XCODE_SCHEME: "FleetYes" # <-- Put the name of your Xcode scheme here
+            APP_ID: 6748867679 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+          node: v20.14.0
+          xcode: latest
+          cocoapods: default
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps 
+            - name: Check node path
+              script: |
+                echo "Node path: $(which node)"
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Install CocoaPods dependencies
+              script: |
+                cd ios && pod install
+            - name: Set up code signing settings on Xcode project
+              script: |
+                xcode-project use-profiles --warn-only
+            - name: Increment build number
+              script: |
+                # Information about getting the latest build version can be found here: https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
+                cd $CM_BUILD_DIR/ios
+                LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_ID")
+                agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+            - name: Build ipa for distribution
+              script: |
+                xcode-project build-ipa \
+                  --workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+                  --scheme "$XCODE_SCHEME"
+        artifacts:
+            - build/ios/ipa/*.ipa
+            - /tmp/xcodebuild_logs/*.log
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true
+              failure: false
+          app_store_connect:
+            auth: integration
+
+            submit_to_testflight: true
+            submit_to_app_store: false
+
+    FleetYes-android-dev:
+        name: FleetYes Android dev
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        environment:
+          groups:
+            - dev
+          android_signing:
+            - fleetyesafp
+          vars:
+            PACKAGE_NAME: "com.fleetyes.afp" # <-- Put your package name here e.g. com.domain.myapp
+          node: v19.7.0
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps
+            # - name: Set Android SDK location
+            #   script: |
+            #     echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties" 
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+           
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Bundle React Native code and assets
+              script: | 
+                npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+            - name: Clean bundled resources
+              script: |
+                cd android
+                rm -rf app/src/main/res/raw
+                rm -rf app/src/main/res/drawable-*
+
+            - name: Build Android release
+              script: |
+                cd android
+                chmod +x gradlew
+                ./gradlew clean
+                ./gradlew assembleRelease
+                ./gradlew bundleRelease
+                
+        artifacts:
+            - android/app/build/outputs/**/*.apk
+            - android/app/build/outputs/**/*.aab
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true     # To not receive a notification when a build succeeds
+              failure: false    # To not receive a notification when a build fails
+
+    FleetYes-ios-dev:
+        name: FleetYes iOS dev
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        integrations:
+          app_store_connect: fastlane
+        environment:
+          groups:
+            - dev
+          ios_signing:
+            distribution_type: app_store
+            bundle_identifier: com.fleetyes.afp
+          vars:
+            XCODE_WORKSPACE: "FleetYes.xcworkspace" # <-- Put the name of your Xcode workspace here
+            XCODE_SCHEME: "FleetYes" # <-- Put the name of your Xcode scheme here
+            APP_ID: 6748867679 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+          node: v20.14.0
+          xcode: latest
+          cocoapods: default
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps 
+                
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Install CocoaPods dependencies
+              script: |
+                cd ios && pod install
+            - name: Set up code signing settings on Xcode project
+              script: |
+                xcode-project use-profiles --warn-only
+            - name: Increment build number
+              script: |
+                # Information about getting the latest build version can be found here: https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
+                cd $CM_BUILD_DIR/ios
+                LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_ID")
+                agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+            - name: Build ipa for distribution
+              script: |
+                xcode-project build-ipa \
+                  --workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+                  --scheme "$XCODE_SCHEME"
+        artifacts:
+            - build/ios/ipa/*.ipa
+            - /tmp/xcodebuild_logs/*.log
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true
+              failure: false
+          app_store_connect:
+            auth: integration
+
+            submit_to_testflight: true
+            submit_to_app_store: false
+
+    FleetYes-android-uat:
+        name: FleetYes Android uat
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        environment:
+          groups:
+            - uat
+          android_signing:
+            - fleetyesafp
+          vars:
+            PACKAGE_NAME: "com.fleetyes.afp" # <-- Put your package name here e.g. com.domain.myapp
+          node: v19.7.0
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps
+            # - name: Set Android SDK location
+            #   script: |
+            #     echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties" 
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+           
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Bundle React Native code and assets
+              script: | 
+                npx react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+            - name: Clean bundled resources
+              script: |
+                cd android
+                rm -rf app/src/main/res/raw
+                rm -rf app/src/main/res/drawable-*
+
+            - name: Build Android release
+              script: |
+                cd android
+                chmod +x gradlew
+                ./gradlew clean
+                ./gradlew assembleRelease
+                ./gradlew bundleRelease
+                
+        artifacts:
+            - android/app/build/outputs/**/*.apk
+            - android/app/build/outputs/**/*.aab
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true     # To not receive a notification when a build succeeds
+              failure: false    # To not receive a notification when a build fails
+
+    FleetYes-ios-uat:
+        name: FleetYes iOS uat
+        max_build_duration: 120
+        instance_type: mac_mini_m2
+        integrations:
+          app_store_connect: fastlane
+        environment:
+          groups:
+            - uat
+          ios_signing:
+            distribution_type: app_store
+            bundle_identifier: com.fleetyes.afp
+          vars:
+            XCODE_WORKSPACE: "FleetYes.xcworkspace" # <-- Put the name of your Xcode workspace here
+            XCODE_SCHEME: "FleetYes" # <-- Put the name of your Xcode scheme here
+            APP_ID: 6748867679 # <-- Put the app id number here. This is found in App Store Connect > App > General > App Information
+          node: v20.14.0
+          xcode: latest
+          cocoapods: default
+        scripts:
+            - name: Install npm dependencies
+              script: |
+                npm install --legacy-peer-deps 
+                
+            - name: 🔐 Create .env from environment secrets
+              script: |
+                echo "APP_NAME=$APP_NAME" >> .env
+                echo "APP_IDENTIFIER=$APP_IDENTIFIER" >> .env
+                echo "APP_LINK_PREFIX=$APP_LINK_PREFIX" >> .env
+                echo "FLEETBASE_HOST=$FLEETBASE_HOST" >> .env
+                echo "FLEETBASE_KEY=$FLEETBASE_KEY" >> .env
+                echo "SOCKETCLUSTER_HOST=$SOCKETCLUSTER_HOST" >> .env
+                echo "SOCKETCLUSTER_PATH=$SOCKETCLUSTER_PATH" >> .env
+                echo "SOCKETCLUSTER_SECURE=$SOCKETCLUSTER_SECURE" >> .env
+                echo "FILE_PATH=$FILE_PATH" >> .env
+                echo "STORAGE_PATH=$STORAGE_PATH" >> .env
+                echo "BUCKET_NAME=$BUCKET_NAME" >> .env
+            - name: Display .env file
+              script: |
+                cat .env
+            - name: Install CocoaPods dependencies
+              script: |
+                cd ios && pod install
+            - name: Set up code signing settings on Xcode project
+              script: |
+                xcode-project use-profiles --warn-only
+            - name: Increment build number
+              script: |
+                # Information about getting the latest build version can be found here: https://docs.codemagic.io/knowledge-codemagic/build-versioning/#app-store-or-testflight-latest-build-number
+                cd $CM_BUILD_DIR/ios
+                LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_ID")
+                agvtool new-version -all $(($LATEST_BUILD_NUMBER + 1))
+            - name: Build ipa for distribution
+              script: |
+                xcode-project build-ipa \
+                  --workspace "$CM_BUILD_DIR/ios/$XCODE_WORKSPACE" \
+                  --scheme "$XCODE_SCHEME"
+        artifacts:
+            - build/ios/ipa/*.ipa
+            - /tmp/xcodebuild_logs/*.log
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+            - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+        publishing:
+          email:
+            recipients:
+              - developer@fleetyes.com
+            notify:
+              success: true
+              failure: false
+          app_store_connect:
+            auth: integration
+
+            submit_to_testflight: true
+            submit_to_app_store: false

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>$(APP_NAME)</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>flbnavigator</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>citymapper</string>
+		<string>comgooglemaps</string>
+		<string>navigon</string>
+		<string>transit</string>
+		<string>waze</string>
+		<string>yandexnavi</string>
+		<string>uber</string>
+		<string>tomtomhome</string>
+		<string>com.sygic.aura</string>
+		<string>here-route</string>
+		<string>moovit</string>
+		<string>lyft</string>
+		<string>mapsme</string>
+		<string>cabify</string>
+		<string>baidumap</string>
+		<string>taxis99</string>
+		<string>iosamap</string>
+	</array>
+	<key>LSRequiresIPhoneOS</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>fleetbase.engineering</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>fleetbase.io</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<false/>
+				<key>NSIncludesSubdomains</key>
+				<true/>
+			</dict>
+			<key>localhost</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_Proxyman._tcp</string>
+	</array>
+	<key>NSCalendarsUsageDescription</key>
+	<string>This app needs access to your calendar to show the calendar picker.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to your camera to take photos for expenses.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app may need to access your contacts for sharing</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Atlantis would use Bonjour Service to discover Proxyman app from your local network.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app tracks driver locations for delivery operations</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app tracks driver locations for delivery operations</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app tracks driver locations for delivery operations</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app may require microphone access if camera is used</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>This app needs access to your photo library to select images for expenses.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app accesses photos to upload reports</string>
+	<key>PHPhotoLibraryPreventAutomaticLimitedAccessAlert</key>
+	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Montserrat-Black.ttf</string>
+		<string>Montserrat-BlackItalic.ttf</string>
+		<string>Montserrat-Bold.ttf</string>
+		<string>Montserrat-BoldItalic.ttf</string>
+		<string>Montserrat-ExtraBold.ttf</string>
+		<string>Montserrat-ExtraBoldItalic.ttf</string>
+		<string>Montserrat-ExtraLight.ttf</string>
+		<string>Montserrat-ExtraLightItalic.ttf</string>
+		<string>Montserrat-Italic.ttf</string>
+		<string>Montserrat-Light.ttf</string>
+		<string>Montserrat-LightItalic.ttf</string>
+		<string>Montserrat-Medium.ttf</string>
+		<string>Montserrat-MediumItalic.ttf</string>
+		<string>Montserrat-Regular.ttf</string>
+		<string>Montserrat-SemiBold.ttf</string>
+		<string>Montserrat-SemiBoldItalic.ttf</string>
+		<string>Montserrat-Thin.ttf</string>
+		<string>Montserrat-ThinItalic.ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
+	<key>UILaunchStoryboardName</key>
+	<string>BootSplash</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>armv7</string>
+	</array>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UIViewControllerBasedStatusBarAppearance</key>
+	<false/>
+</dict>
+</plist>
