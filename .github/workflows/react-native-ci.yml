@@ -11,9 +11,36 @@ on:
         description: 'Environment to build for'
         required: true
         type: environment
+env:
+    FLEETBASE_KEY: ${{ secrets.FLEETBASE_KEY }}
+    GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
+    ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
 
 jobs:
-  build:
+  install_and_test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v3
+
+            - name: Install Node.js
+              uses: actions/setup-node@v1
+              with:
+                  node-version: 18.x
+
+            - name: Install dependencies
+              run: npm install -g yarn
+
+            - name: Enable Corepack
+              run: corepack enable
+
+            - name: Activate Yarn 3.6.4
+              run: corepack prepare yarn@3.6.4 --activate
+
+            - name: Install dependencies
+              run: yarn install
+
+  android_build:
     name: Build APK
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
@@ -23,23 +50,51 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.branch }}
-
+      - name: Generate google-services.json
+        env:
+            GOOGLE_SERVICES_JSON: ${{ secrets.STOREFRONT_GOOGLE_SERVICES_JSON }}
+        run: |
+            echo "$GOOGLE_SERVICES_JSON" > google-services.json
+            mkdir -p android/app/src  
+            mv google-services.json android/app/src
+        
       - name: ⚙️ Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+            node-version: '22'
+      - name: Install dependencies
+        run: npm install -g yarn
+        
+      - name: Enable Corepack
+        run: corepack enable
 
-      - name: 📦 Install dependencies
-        run: npm install --legacy-peer-deps
+      - name: Activate Yarn 3.6.4
+        run: corepack prepare yarn@3.6.4 --activate
+
+      - name: Install dependencies
+        run: yarn install
 
       - name: ☕ Setup JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '19'
+          distribution: 'oracle'
+          java-version: '17'
 
-      - name: 📲 Setup Android SDK
-        uses: android-actions/setup-android@v3
+      # - name: 📲 Setup Android SDK
+      #   uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle Wrapper
+        uses: actions/cache@v2
+        with:
+            path: ~/.gradle/wrapper
+            key: ${{ runner.os }}-gradle-wrapper-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties')       
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v2
+        with:
+            path: ~/.gradle/caches
+            key: ${{ runner.os }}-gradle-caches-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+            restore-keys: |
+                ${{ runner.os }}-gradle-caches-
 
 
       - name: 🔐 Create .env from environment secrets
@@ -55,15 +110,14 @@ jobs:
 
       - name: Display .env file
         run: cat .env
-
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
-
-      - name: 🧹 Clean build
-        run: cd android && ./gradlew clean
         
-      - name: 🛠️ Build release APK
-        run: cd android && ./gradlew assembleRelease
+      - name: Make Gradlew Executable
+        run: cd android && chmod +x ./gradlew
+              
+      - name: Build Android
+        run: cd android && ./gradlew assembleDebug
+        env:
+            JVM_OPTS: '-Xmx4096m'
 
       - name: List APK outputs
         run: find android/app/build/outputs/apk/ -type f -name "*.apk"
