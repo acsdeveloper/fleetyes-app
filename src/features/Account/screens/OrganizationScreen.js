@@ -5,8 +5,8 @@ import { ActivityIndicator, Alert, FlatList, RefreshControl, Text, TouchableOpac
 import Toast from 'react-native-toast-message';
 import tailwind from 'tailwind-rn';
 import { getColorCode, logError, translate } from 'utils';
+import { useDriver } from 'utils/Auth';
 import { useTheme } from '../../../ThemeContext'; // Adjust the path to your ThemeContext
-import { useDriver } from './src/utils/Auth';
 
 const Organization = ({ navigation, route }) => {
     const { currentOrganization } = route.params;

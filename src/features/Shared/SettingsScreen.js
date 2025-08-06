@@ -1,12 +1,12 @@
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useNavigation } from '@react-navigation/native';
+import { useFleetbase } from 'hooks';
 import { React, useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable, RefreshControl, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import tailwind from 'tailwind-rn';
 import { getColorCode, translate } from 'utils';
-import { useFleetbase } from './src/hooks';
 
 const SettingsScreen = ({ route }) => {
     const routeParam = route.params;

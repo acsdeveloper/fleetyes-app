@@ -1,3 +1,3 @@
-import { useDriver } from './src/utils/Auth';
+import { useDriver } from 'utils/Auth';
 
 export default useDriver;

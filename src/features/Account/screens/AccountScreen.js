@@ -1,15 +1,15 @@
 // AccountScreen.js
 import { faAdjust, faChevronRight, faFileAlt, faIdBadge, faUser } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
+import { useFleetbase } from 'hooks';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Dimensions, Text, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import tailwind from 'tailwind-rn';
 import { config, translate } from 'utils';
+import { useDriver } from 'utils/Auth';
 import { useTheme } from '../../../ThemeContext'; // Adjust the path to your ThemeContext
 import ThemeToggleButton from './../../../ThemeToggleButton'; // Adjust the path to your ThemeToggleButton
-import { useFleetbase } from './src/hooks';
-import { useDriver } from './src/utils/Auth';
 
 const fullHeight = Dimensions.get('window').height;
 

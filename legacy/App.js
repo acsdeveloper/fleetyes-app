@@ -2,6 +2,7 @@ import { Order } from '@fleetbase/sdk';
 import { useNetInfo } from '@react-native-community/netinfo';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { useFleetbase } from 'hooks';
 import type { Node } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Text, View } from 'react-native';
@@ -10,11 +11,10 @@ import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import Toast from 'react-native-toast-message';
 import tailwind from 'tailwind-rn';
+import { useDriver } from 'utils/Auth';
 import { getString, setString } from 'utils/Storage';
 import CoreStack from './src/features/Core/CoreStack';
-import { useFleetbase } from './src/hooks';
 import { config } from './src/utils';
-import { useDriver } from './src/utils/Auth';
 
 const Stack = createStackNavigator();
 

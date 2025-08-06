@@ -1,11 +1,11 @@
 import { faSearch } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { searchButtonStyle } from 'components/SearchButton';
+import { useFleetbase } from 'hooks';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Platform, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import tailwind from 'tailwind-rn';
 import { getColorCode, isEmpty, translate } from 'utils';
-import { useFleetbase } from './src/hooks';
 
 const isAndroid = Platform.OS === 'android';
 

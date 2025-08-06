@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
+import { useFleetbase } from 'hooks';
 import { get } from 'utils/Storage';
-import { useFleetbase } from './src/hooks';
 
 /**
  * Wrapper for performing navigation transitions to screnes

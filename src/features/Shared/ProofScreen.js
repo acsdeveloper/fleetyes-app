@@ -2,6 +2,7 @@ import { Entity, Order, Place } from '@fleetbase/sdk';
 import { faBarcode, faCamera, faSignature } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import OrderStatusBadge from 'components/OrderStatusBadge';
+import { useFleetbase } from 'hooks';
 import React, { useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Dimensions, Text, TouchableOpacity, View } from 'react-native';
 import FastImage from 'react-native-fast-image';
@@ -9,7 +10,6 @@ import SignatureScreen from 'react-native-signature-canvas';
 import { Camera, useCameraDevice, useCodeScanner } from 'react-native-vision-camera';
 import tailwind from 'tailwind-rn';
 import { getColorCode, isEmpty, logError } from 'utils';
-import { useFleetbase } from './src/hooks';
 
 const { width, height } = Dimensions.get('window');
 

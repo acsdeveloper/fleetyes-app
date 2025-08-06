@@ -2,9 +2,9 @@ import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useNavigation } from '@react-navigation/native';
 import PhoneInput from 'components/PhoneInput';
+import { useFleetbase } from 'hooks';
 import React, { useState } from 'react';
 import { getColorCode, logError, translate } from 'utils';
-import { useFleetbase } from './src/hooks';
 
 import { Keyboard, KeyboardAvoidingView, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';

@@ -1,13 +1,13 @@
 import { faTimes } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
 import { useNavigation } from '@react-navigation/native';
+import { useFleetbase } from 'hooks';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Pressable, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Toast from 'react-native-toast-message';
 import tailwind from 'tailwind-rn';
 import { getColorCode, logError, translate } from 'utils';
 import { useTheme } from '../../../ThemeContext'; // Adjust the path to your ThemeContext
-import { useFleetbase } from './src/hooks';
 
 const ChannelScreen = ({ route }) => {
     const navigation = useNavigation();
