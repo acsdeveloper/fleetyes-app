@@ -1,6 +1,6 @@
 //
 //  Header.swift
-//  NavigatorApp
+//  StorefrontApp
 //
 //  Created by Ronald A. Richardson on 8/7/21.
 //

@@ -1,56 +1,85 @@
 # Resolve react_native_pods.rb with node to allow for hoisting
-def node_require(script)
-   require Pod::Executable.execute_command('node', ['-p',
-     "require.resolve(
-       '#{script}',
-       {paths: [process.argv[1]]},
-     )", __dir__]).strip
-end
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+require_relative '../node_modules/react-native-permissions/scripts/setup.rb'
 
-node_require('react-native/scripts/react_native_pods.rb')
-node_require('react-native-permissions/scripts/setup.rb')
+platform :ios, '13.0'
+# Add the Google Maps repository
+# pod 'React-Core', :path => '../node_modules/react-native/'
+# pod 'React-Core/RCTWebSocket', :path => '../node_modules/react-native/'
+# pod 'React-Core/DevSupport', :path => '../node_modules/react-native/'
+# pod 'React-RCTSettings', :path => '../node_modules/react-native/Libraries/Settings'
 
-platform :ios, min_ios_version_supported
+# pod 'React-CoreModules', :path => '../node_modules/react-native/React/CoreModules'
+# pod 'boost', :path => '../node_modules/react-native/third-party-podspecs/boost.podspec'
+pod 'GoogleMaps', '~> 7.4.0'
+pod 'Google-Maps-iOS-Utils', '4.1.0'
+
+# Other configurations
+use_frameworks! :linkage => :static
 prepare_react_native_project!
-
-# Permissions handlers
-setup_permissions([
-  'Camera',
-  'Contacts',
-  'FaceID',
-  'LocationAccuracy',
-  'LocationAlways',
-  'LocationWhenInUse',
-  'Notifications',
-  'PhotoLibrary',
-  'PhotoLibraryAddOnly',
-])
-
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
-
-target 'NavigatorApp' do
+flipper_config = FlipperConfiguration.disabled
+target 'FleetYes' do
   config = use_native_modules!
-
-  # React Native Maps dependencies
-  pod 'react-native-maps', :path => '../node_modules/react-native-maps'
+  flags = get_default_flags()
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
+    :hermes_enabled => false,  # Disable Hermes if you don't need it
+    :flipper_configuration => flipper_config,
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # React Native Maps dependencies
+  rn_maps_path = '../node_modules/react-native-maps'
+  pod 'react-native-google-maps', :path => rn_maps_path
+  pod 'react-native-maps', :path => rn_maps_path
+
+  # Permissions handlers
+  permissions_path = '../node_modules/react-native-permissions/ios'
+  pod 'Permission-Notifications', :path => "#{permissions_path}/Notifications"
+  pod 'Permission-LocationWhenInUse', :path => "#{permissions_path}/LocationWhenInUse"
+  pod 'Permission-Contacts', :path => "#{permissions_path}/Contacts"
+  pod 'Permission-Camera', :path => "#{permissions_path}/Camera"
+  # pod 'Permission-Calendars', :path => "#{permissions_path}/Calendars"
+  # Additional dependencies
+  pod 'RNFileViewer', :path => '../node_modules/react-native-file-viewer'
+
+  target 'FleetYesTests' do
+    inherit! :complete
+  end
+
   post_install do |installer|
-    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
-    react_native_post_install(
-      installer,
-      config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
-    )
+    react_native_post_install(installer, config[:reactNativePath], :mac_catalyst_enabled => false)
+    __apply_Xcode_12_5_M1_post_install_workaround(installer)
+    installer.pods_project.targets.each do |target|
+      if target.respond_to?(:product_type) and target.product_type == "com.apple.product-type.bundle"
+        target.build_configurations.each do |config|
+            config.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+        end
+      end
+    end
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      end
+    end
+    installer.pods_project.targets.each do |target|
+      # if target.name == 'react-native-worklets-core'
+      #   target.build_configurations.each do |config|
+      #     config.build_settings['EXCLUDED_ARCHITECTURES'] = 'arm64'
+      #   end
+      # end
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+      end
+    end
+    # setup_permissions(installer)
   end
 end
+
