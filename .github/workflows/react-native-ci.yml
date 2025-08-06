@@ -17,29 +17,6 @@ env:
     ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
 
 jobs:
-  install_and_test:
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v3
-
-            - name: Install Node.js
-              uses: actions/setup-node@v1
-              with:
-                  node-version: 18.x
-
-            - name: Install dependencies
-              run: npm install -g yarn
-
-            - name: Enable Corepack
-              run: corepack enable
-
-            - name: Activate Yarn 3.6.4
-              run: corepack prepare yarn@3.6.4 --activate
-
-            - name: Install dependencies
-              run: yarn install
-
   android_build:
     name: Build APK
     runs-on: ubuntu-latest
