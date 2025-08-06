@@ -3,10 +3,6 @@ name: Build React Native APK
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to build'
-        required: true
-        default: 'main'
       environment:
         description: 'Environment to build for'
         required: true
@@ -25,8 +21,7 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.branch }}
+        
       - name: Generate google-services.json
         env:
             GOOGLE_SERVICES_JSON: ${{ secrets.STOREFRONT_GOOGLE_SERVICES_JSON }}
