@@ -39,9 +39,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
             node-version: '22'
-      - name: Remove Yarn lock file
-        run: |
-            rm yarn.lock
 
       - name: Install dependencies
         run: npm install -g yarn
@@ -53,7 +50,7 @@ jobs:
         run: corepack prepare yarn@3.6.4 --activate
 
       - name: Install dependencies
-        run: yarn install
+        run: yarn install --no-immutable
 
       - name: ☕ Setup JDK
         uses: actions/setup-java@v4
