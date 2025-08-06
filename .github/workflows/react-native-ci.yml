@@ -13,8 +13,8 @@ on:
         type: environment
 env:
     FLEETBASE_KEY: ${{ secrets.FLEETBASE_KEY }}
-    GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY }}
-    ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+    GOOGLE_MAPS_KEY: ${{ secrets.GOOGLE_MAPS_KEY || "" }}
+    ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || "" }}
 
 jobs:
   install_and_test:
