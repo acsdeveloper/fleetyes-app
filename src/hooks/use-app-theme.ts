@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { useColorScheme, Appearance } from 'react-native';
-import useStorage, { getString, setString } from './use-storage';
-import { navigatorConfig, getTheme } from '../utils';
+import { useColorScheme } from 'react-native';
+import { getTheme, navigatorConfig } from '../utils';
 import { capitalize } from '../utils/format';
+import useStorage, { getString, setString } from './use-storage';
 
 export const USER_COLOR_SCHEME_KEY = 'user_color_scheme';
 export const APP_THEME_KEY = 'app_theme';
 export const schemes = ['light', 'dark'] as const;
 
 export default function useAppTheme() {
+    console.log('useAppTheme', navigatorConfig('theme'));
+    console.log('APP_THEME_KEY', APP_THEME_KEY);
     const baseTheme = capitalize(navigatorConfig('theme')); // e.g., 'Indigo'
     const systemColorScheme = useColorScheme(); // 'light' or 'dark';
     const [userColorScheme, setUserColorScheme] = useStorage<string>(USER_COLOR_SCHEME_KEY, systemColorScheme || 'light');

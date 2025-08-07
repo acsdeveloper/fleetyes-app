@@ -1,11 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from 'tamagui';
-import { format } from 'date-fns';
-import { Order } from '@fleetbase/sdk';
-import { useAuth } from './AuthContext';
 import useFleetbase from '../hooks/use-fleetbase';
 import useStorage from '../hooks/use-storage';
-import { isArray } from '../utils';
+import { useAuth } from './AuthContext';
 
 const ChatContext = createContext(null);
 
@@ -25,6 +22,16 @@ export const ChatProvider: React.FC = ({ children }) => {
     const getChannels = useCallback(async () => {
         if (!adapter) return;
 
+        // Check if we have valid credentials before making API calls
+        try {
+            // Try to get a simple endpoint to check if credentials are valid
+            await adapter.get('drivers/me');
+        } catch (err) {
+            // If credentials are invalid, don't make chat API calls
+            console.log('Chat disabled: Invalid API credentials');
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -42,6 +49,14 @@ export const ChatProvider: React.FC = ({ children }) => {
     const deleteChannel = useCallback(
         async (channel) => {
             if (!adapter) return;
+
+            // Check if we have valid credentials before making API calls
+            try {
+                await adapter.get('drivers/me');
+            } catch (err) {
+                console.log('Chat disabled: Invalid API credentials');
+                return;
+            }
 
             setIsLoading(true);
 
@@ -84,6 +99,14 @@ export const ChatProvider: React.FC = ({ children }) => {
     const createChannel = useCallback(
         async (data = {}) => {
             if (!adapter) return;
+
+            // Check if we have valid credentials before making API calls
+            try {
+                await adapter.get('drivers/me');
+            } catch (err) {
+                console.log('Chat disabled: Invalid API credentials');
+                return;
+            }
 
             setIsLoading(true);
 
@@ -272,8 +295,12 @@ export const ChatProvider: React.FC = ({ children }) => {
 
     useEffect(() => {
         if (getChannelsPromiseRef.current) return;
-        getChannels();
-    }, [adapter]);
+        
+        // Only call getChannels if we have a valid adapter
+        if (adapter) {
+            getChannels();
+        }
+    }, [adapter, getChannels]);
 
     const value = useMemo(
         () => ({

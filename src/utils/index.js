@@ -1,15 +1,12 @@
-import Config from 'react-native-config';
-import { Platform, ActionSheetIOS, Alert, Dimensions } from 'react-native';
+import ImageResizer from '@bam.tech/react-native-image-resizer';
 import { Collection, lookup } from '@fleetbase/sdk';
-import storage, { getString } from './storage';
-import { capitalize } from './format';
-import { themes } from '../../tamagui.config';
-import { APP_THEME_KEY } from '../hooks/use-app-theme';
-import { pluralize } from 'inflected';
 import { countries } from 'countries-list';
 import { parseISO } from 'date-fns';
-import NavigatorConfig from '../../navigator.config';
-import ImageResizer from '@bam.tech/react-native-image-resizer';
+import { ActionSheetIOS, Alert, Dimensions, Platform } from 'react-native';
+import Config from 'react-native-config';
+import { themes } from '../../tamagui.config';
+import { APP_THEME_KEY } from '../hooks/use-app-theme';
+import storage, { getString } from './storage';
 
 export async function resizePhoto(uri: string, maxSize = 1024): Promise<string> {
     const MAX_DIMENSION = maxSize;
@@ -37,7 +34,14 @@ export async function resizePhoto(uri: string, maxSize = 1024): Promise<string> 
 }
 
 export function navigatorConfig(key, defaultValue = null) {
-    return get(NavigatorConfig, key, defaultValue);
+    // Import NavigatorConfig dynamically to avoid circular dependency
+    try {
+        const NavigatorConfig = require('../../navigator.config').default;
+        return get(NavigatorConfig, key, defaultValue);
+    } catch (error) {
+        console.warn('Failed to load NavigatorConfig:', error);
+        return defaultValue;
+    }
 }
 
 export function get(target, path, defaultValue = null) {
@@ -180,7 +184,7 @@ export function uniqueArray(array) {
 
 export function getTheme(key = null) {
     const themeName = getString(APP_THEME_KEY);
-    if (themeName) {
+    if (themeName && themes) {
         const targetTheme = themes[themeName];
         if (targetTheme) {
             return key ? targetTheme[key] : targetTheme;

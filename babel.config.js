@@ -15,5 +15,25 @@ module.exports = {
                 experimentalFlattenThemesOnNative: false,
             },
         ],
+        [
+            'module-resolver',
+            {
+                root: ['./src', './app'],
+                extensions: ['.js', '.json'],
+                alias: {
+                    account: './src/features/Account',
+                    auth: './src/features/Auth',
+                    core: './src/features/Core',
+                    exceptions: './src/features/Exceptions',
+                    shared: './src/features/Shared',
+                    ui: './src/interface',
+                    components: './src/components',
+                    assets: './assets',
+                    app: './app',
+                    storage: './src/utils/storage',
+                    utils: './src/utils',
+                },
+            },
+        ],
     ],
 };

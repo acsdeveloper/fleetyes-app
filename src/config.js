@@ -1,5 +1,5 @@
 import Environment from 'react-native-config';
-import { DefaultConfig } from '../../config/default';
+import { DefaultConfig } from '../config/default';
 
 /**
  * ----------------------------------------------------------
@@ -11,6 +11,9 @@ import { DefaultConfig } from '../../config/default';
  *
  * @type {object}
  */
+
+Environment.FLEETBASE_KEY 
+Environment.FLEETBASE_HOST
 const Config = {
     ...Environment,
     ...DefaultConfig,

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import socketClusterClient from 'socketcluster-client';
 import { consumeAsyncIterator } from '../utils';
 import { useConfig } from './ConfigContext';
@@ -16,10 +16,23 @@ export const SocketClusterProvider = ({ children }) => {
     const [error, setError] = useState(null);
 
     useEffect(() => {
+        // Check if we have valid connection config before initializing socket
+        const hostname = resolveConnectionConfig('SOCKETCLUSTER_HOST');
+        const port = resolveConnectionConfig('SOCKETCLUSTER_PORT');
+        const fleetbaseKey = resolveConnectionConfig('FLEETBASE_KEY');
+        
+        console.log('Socket config check:', { hostname, port, fleetbaseKey: fleetbaseKey ? 'present' : 'missing' });
+        
+        // If we don't have valid connection config or API key, don't initialize socket
+        if (!hostname || !port || !fleetbaseKey) {
+            console.log('Socket disabled: Missing connection configuration or API key');
+            return;
+        }
+
         // Initialize the socket connection
         const options = {
-            hostname: resolveConnectionConfig('SOCKETCLUSTER_HOST'),
-            port: resolveConnectionConfig('SOCKETCLUSTER_PORT'),
+            hostname,
+            port,
             path: resolveConnectionConfig('SOCKETCLUSTER_PATH'),
             secure: resolveConnectionConfig('SOCKETCLUSTER_SECURE'),
         };

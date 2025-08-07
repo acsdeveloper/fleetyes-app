@@ -122,6 +122,7 @@
         "@types/react-test-renderer": "^18.0.0",
         "babel-jest": "^29.6.3",
         "babel-loader": "^9.2.1",
+        "babel-plugin-module-resolver": "^5.0.2",
         "babel-plugin-preval": "^5.1.0",
         "babel-plugin-react-native-web": "^0.19.13",
         "css-loader": "^7.1.2",
