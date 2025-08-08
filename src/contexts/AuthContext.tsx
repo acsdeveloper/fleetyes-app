@@ -1,13 +1,14 @@
-import React, { createContext, useContext, useReducer, useMemo, useEffect, useCallback, useRef } from 'react';
+import { Driver } from '@fleetbase/sdk';
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
 import { Platform } from 'react-native';
 import { EventRegister } from 'react-native-event-listeners';
-import { Driver } from '@fleetbase/sdk';
-import { later, isArray, navigatorConfig } from '../utils';
+import { LoginManager as FacebookLoginManager } from 'react-native-fbsdk-next';
+import useFleetbase from '../hooks/use-fleetbase.js';
 import useStorage, { storage } from '../hooks/use-storage';
-import useFleetbase from '../hooks/use-fleetbase';
+import { later, navigatorConfig } from '../utils';
+import { getVerificationCode, sendAccountCreationCode, sendCode, verifyAccountCreationCode } from '../utils/request';
 import { useLanguage } from './LanguageContext';
 import { useNotification } from './NotificationContext';
-import { LoginManager as FacebookLoginManager } from 'react-native-fbsdk-next';
 
 const AuthContext = createContext();
 
@@ -15,10 +16,12 @@ const authReducer = (state, action) => {
     switch (action.type) {
         case 'RESTORE_SESSION':
             return { ...state, driver: action.driver };
-        case 'LOGIN':
-            return { ...state, phone: action.phone, isSendingCode: action.isSendingCode ?? false, loginMethod: action.loginMethod ?? 'sms' };
+        case 'SEND_OTP':
+            return { ...state, isSendingOtp: action.isSendingOtp ?? false };
+        case 'VERIFY_OTP':
+            return { ...state, isVerifyingOtp: action.isVerifyingOtp ?? false };
         case 'CREATING_ACCOUNT':
-            return { ...state, phone: action.phone, isSendingCode: action.isSendingCode ?? false };
+            return { ...state, isCreatingAccount: action.isCreatingAccount ?? false };
         case 'VERIFY':
             return { ...state, driver: action.driver, isVerifyingCode: action.isVerifyingCode ?? false };
         case 'LOGOUT':
@@ -33,40 +36,49 @@ const authReducer = (state, action) => {
 };
 
 export const AuthProvider = ({ children }) => {
-    const { fleetbase, adapter } = useFleetbase();
+    const fleetbase = useFleetbase();
     const { setLocale } = useLanguage();
     const { deviceToken } = useNotification();
     const [storedDriver, setStoredDriver] = useStorage('driver');
     const [organizations, setOrganizations] = useStorage('organizations', []);
     const [authToken, setAuthToken] = useStorage('_driver_token');
     const [state, dispatch] = useReducer(authReducer, {
-        isSendingCode: false,
         isVerifyingCode: false,
         isSigningOut: false,
         isUpdating: false,
-        loginMethod: 'sms',
-        driver: storedDriver ? new Driver(storedDriver, adapter) : null,
+        isSendingOtp: false,
+        isVerifyingOtp: false,
+        isCreatingAccount: false,
+        driver: null, // Initialize as null, will be set in useEffect
         phone: null,
     });
     const organizationsLoadedRef = useRef(false);
     const loadOrganizationsPromiseRef = useRef();
+    const fleetbaseRef = useRef(fleetbase);
 
-    // Restore session on app load
+    // Update fleetbase ref when it changes
     useEffect(() => {
-        if (storedDriver) {
+        fleetbaseRef.current = fleetbase;
+    }, [fleetbase]);
+
+    // Restore session on app load - only run once when storedDriver changes
+    useEffect(() => {
+        if (storedDriver && fleetbaseRef.current) {
             if (storedDriver.token) {
                 setAuthToken(storedDriver.token);
             }
-            dispatch({ type: 'RESTORE_SESSION', driver: new Driver(storedDriver, adapter) });
+            dispatch({ type: 'RESTORE_SESSION', driver: new Driver(storedDriver, fleetbaseRef.current.getAdapter()) });
         } else {
             dispatch({ type: 'RESTORE_SESSION', driver: null });
         }
+    }, [storedDriver]); // Remove fleetbase from dependencies
 
-        // Load organizations once
-        if (organizationsLoadedRef && organizationsLoadedRef.current === false) {
+    // Load organizations once when driver is available
+    useEffect(() => {
+        if (state.driver && !organizationsLoadedRef.current) {
             loadOrganizations();
         }
-    }, [storedDriver, fleetbase]);
+    }, [state.driver]);
 
     const setDriver = useCallback(
         (newDriver) => {
@@ -76,7 +88,7 @@ export const AuthProvider = ({ children }) => {
                 return;
             }
 
-            const driverInstance = newDriver instanceof Driver ? newDriver : new Driver(newDriver, adapter);
+            const driverInstance = newDriver instanceof Driver ? newDriver : new Driver(newDriver, fleetbaseRef.current.getAdapter());
 
             // Restore driver token if needed
             if (!driverInstance.token && storage.getString('_driver_token')) {
@@ -86,7 +98,7 @@ export const AuthProvider = ({ children }) => {
             setStoredDriver(driverInstance.serialize());
             EventRegister.emit('driver.updated', driverInstance);
         },
-        [fleetbase, setStoredDriver]
+        [setStoredDriver]
     );
 
     // Track driver location
@@ -99,7 +111,7 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver]
+        [state.driver, setDriver]
     );
 
     // Reload the driver resource
@@ -112,7 +124,7 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver]
+        [state.driver, setDriver]
     );
 
     // Track driver position and other position related data
@@ -125,7 +137,7 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver]
+        [state.driver, setDriver]
     );
 
     // Update driver meta attributes
@@ -140,7 +152,7 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver]
+        [state.driver, setDriver]
     );
 
     // Update driver meta attributes
@@ -157,18 +169,18 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver]
+        [state.driver, setDriver]
     );
 
     // Toggle driver online status
     const toggleOnline = useCallback(
         async (online = null) => {
-            if (!adapter) return;
+            if (!fleetbaseRef.current.getAdapter()) return;
 
             online = online === null ? !state.driver.isOnline : online;
 
             try {
-                const driver = await adapter.post(`drivers/${state.driver.id}/toggle-online`, { online });
+                const driver = await fleetbaseRef.current.getAdapter().post(`drivers/${state.driver.id}/toggle-online`, { online });
                 setDriver(driver);
 
                 return driver;
@@ -176,7 +188,7 @@ export const AuthProvider = ({ children }) => {
                 throw err;
             }
         },
-        [state.driver, adapter]
+        [state.driver, setDriver]
     );
 
     // Register driver's device and platform
@@ -197,56 +209,71 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
-    // Create Account: Send verification code
-    const requestCreationCode = useCallback(
-        async (phone, method = 'sms') => {
-            dispatch({ type: 'CREATING_ACCOUNT', phone, isSendingCode: true });
-            try {
-                await fleetbase.drivers.requestCreationCode(phone, method);
-                dispatch({ type: 'CREATING_ACCOUNT', phone, isSendingCode: false });
-            } catch (error) {
-                console.warn('[AuthContext] Account creation verification failed:', error);
-                throw error;
-            } finally {
-                dispatch({ type: 'CREATING_ACCOUNT', phone, isSendingCode: false });
+    // Email-based OTP login - send OTP using HttpRequest (like legacy)
+    const sendOtpToEmail = useCallback(async (email: string) => {
+        try {
+            const result = await sendCode(email);
+            if (result) {
+                return result;
+            } else {
+                throw new Error('Failed to send OTP');
             }
-        },
-        [fleetbase]
-    );
+        } catch (error) {
+            throw error;
+        }
+    }, []);
 
-    // Create Account: Verify Code
-    const verifyAccountCreation = useCallback(
-        async (phone, code, attributes = {}) => {
-            dispatch({ type: 'VERIFY', isVerifyingCode: true });
+    // Email-based OTP login - verify OTP using HttpRequest (like legacy)
+    const verifyOtpWithEmail = useCallback(
+        async (email, otpCode) => {
+            dispatch({ type: 'VERIFY_OTP', isVerifyingOtp: true });
             try {
-                const driver = await fleetbase.drivers.create(phone, code, attributes);
+                const driverData = await getVerificationCode(email, otpCode);
+                
+                if (!driverData) {
+                    throw new Error('Invalid verification code. Please try again.');
+                }
+                
+                // Create a Driver instance from the response data
+                const driver = new Driver(driverData, fleetbaseRef.current.getAdapter());
                 createDriverSession(driver);
-                dispatch({ type: 'VERIFY', driver });
+                dispatch({ type: 'VERIFY_OTP', isVerifyingOtp: false });
             } catch (error) {
-                console.warn('[AuthContext] Account creation verification failed:', error);
+                dispatch({ type: 'VERIFY_OTP', isVerifyingOtp: false });
+                console.warn('[AuthContext] Verify OTP failed:', error);
                 throw error;
-            } finally {
-                dispatch({ type: 'VERIFY', isVerifyingCode: false });
             }
         },
-        [fleetbase]
+        []
     );
 
-    // Login: Send verification code
-    const login = useCallback(
-        async (phone) => {
-            dispatch({ type: 'LOGIN', phone, isSendingCode: true });
-            try {
-                const { method } = await fleetbase.drivers.login(phone);
-                dispatch({ type: 'LOGIN', phone, isSendingCode: false, loginMethod: method ?? 'sms' });
-            } catch (error) {
-                dispatch({ type: 'LOGIN', phone, isSendingCode: false });
-                console.warn('[AuthContext] Login failed:', error);
-                throw error;
+    // Email-based account creation with OTP using HttpRequest (like legacy)
+    const createAccountWithEmailOtp = useCallback(async (email: string, attributes: any = {}) => {
+        try {
+            const result = await sendAccountCreationCode(email, attributes);
+            if (result) {
+                return result;
+            } else {
+                throw new Error('Failed to send account creation OTP');
             }
-        },
-        [fleetbase]
-    );
+        } catch (error) {
+            throw error;
+        }
+    }, []);
+
+    // Verify account creation OTP using HttpRequest (like legacy)
+    const verifyAccountCreationOtp = useCallback(async (email: string, code: string, attributes: any = {}) => {
+        try {
+            const result = await verifyAccountCreationCode(email, code, attributes);
+            if (result) {
+                return result;
+            } else {
+                throw new Error('Invalid account creation OTP code');
+            }
+        } catch (error) {
+            throw error;
+        }
+    }, []);
 
     // Remove local session data
     const clearSessionData = () => {
@@ -258,37 +285,17 @@ export const AuthProvider = ({ children }) => {
         FacebookLoginManager.logOut();
     };
 
-    // Verify code
-    const verifyCode = useCallback(
-        async (code) => {
-            dispatch({ type: 'VERIFY', isVerifyingCode: true });
-            try {
-                const driver = await fleetbase.drivers.verifyCode(state.phone, code);
-                createDriverSession(driver);
-                dispatch({ type: 'VERIFY', driver, isVerifyingCode: false });
-            } catch (error) {
-                console.warn('[AuthContext] Code verification failed:', error);
-                dispatch({ type: 'VERIFY', isVerifyingCode: false });
-                throw error;
-            }
-        },
-        [fleetbase, state.phone, setDriver]
-    );
-
     // Create a session from driver data/JSON
-    const createDriverSession = async (driver, callback = null) => {
+    const createDriverSession = useCallback(async (driver, callback = null) => {
         clearSessionData();
-        // setDriverDefaultLocation(driver);
         setDriver(driver);
         setAuthToken(driver.token);
 
-        // run a callback with the driver instance
-        const instance = new Driver(driver, adapter);
+        const instance = new Driver(driver, fleetbaseRef.current.getAdapter());
         if (typeof callback === 'function') {
             callback(instance);
         }
 
-        // Sync the driver device
         if (deviceToken) {
             syncDevice(instance, deviceToken);
         }
@@ -297,7 +304,7 @@ export const AuthProvider = ({ children }) => {
         loadOrganizationsPromiseRef.current = null;
 
         return instance;
-    };
+    }, [setDriver, setAuthToken, deviceToken]);
 
     // Load organizations driver belongs to
     const loadOrganizations = useCallback(async () => {
@@ -306,31 +313,28 @@ export const AuthProvider = ({ children }) => {
         try {
             loadOrganizationsPromiseRef.current = state.driver.listOrganizations();
             const organizations = await loadOrganizationsPromiseRef.current;
-            console.log('[loadOrganizations #organizations]', organizations);
-            setOrganizations(organizations.map((n) => n.serialize()));
+            setOrganizations(organizations?.map((n) => n.serialize()) || []);
         } catch (err) {
             console.warn('Error trying to load driver organizations:', err);
         } finally {
             organizationsLoadedRef.current = true;
             loadOrganizationsPromiseRef.current = null;
         }
-    }, [state.driver]);
+    }, [state.driver, setOrganizations]);
 
     // Load organizations driver belongs to
     const switchOrganization = useCallback(
         async (organization) => {
-            if (!adapter) return;
+            if (!fleetbaseRef.current.getAdapter()) return;
 
             try {
-                const { driver } = await adapter.post(`drivers/${state.driver.id}/switch-organization`, { next: organization.id });
-                console.log('[switchOrganization #driver]', driver);
-                console.log('[switchOrganization #driver.token]', driver.token);
+                const { driver } = await fleetbaseRef.current.getAdapter().post(`drivers/${state.driver.id}/switch-organization`, { next: organization.id });
                 createDriverSession(driver);
             } catch (err) {
                 console.warn('Error trying to switch driver organization:', err);
             }
         },
-        [adapter, state.driver]
+        [state.driver, createDriverSession]
     );
 
     // Load organizations driver belongs to
@@ -361,29 +365,22 @@ export const AuthProvider = ({ children }) => {
         later(() => {
             dispatch({ type: 'LOGOUT', isSigningOut: false });
         });
-    }, [setDriver]);
-
-    // // Sync device token if it changes
-    // // Test on IOS before adding
-    // useEffect(() => {
-    //     if (deviceToken && state.driver) {
-    //         syncDevice(state.driver, deviceToken);
-    //     }
-    // }, [deviceToken, state.driver]);
+    }, [setDriver, setLocale]);
 
     // Memoize useful props and methods
     const value = useMemo(
         () => ({
             driver: state.driver,
             phone: state.phone,
-            isSendingCode: state.isSendingCode,
             isVerifyingCode: state.isVerifyingCode,
             isAuthenticated: !!state.driver,
             isNotAuthenticated: !state.driver,
             isOnline: state.driver?.isOnline,
             isOffline: state.driver?.isOnline === false,
             isUpdating: state.isUpdating,
-            loginMethod: state.loginMethod,
+            isSendingOtp: state.isSendingOtp,
+            isVerifyingOtp: state.isVerifyingOtp,
+            isCreatingAccount: state.isCreatingAccount,
             updateDriverMeta,
             updateDriver,
             organizations,
@@ -392,14 +389,15 @@ export const AuthProvider = ({ children }) => {
             getCurrentOrganization,
             reloadDriver,
             trackDriver,
+            trackDriverLocation,
             toggleOnline,
             clearSessionData,
             setDriver,
-            login,
-            verifyCode,
+            sendOtpToEmail,
+            verifyOtpWithEmail,
+            createAccountWithEmailOtp,
+            verifyAccountCreationOtp,
             logout,
-            requestCreationCode,
-            verifyAccountCreation,
             createDriverSession,
             syncDevice,
             registerDevice,
@@ -407,19 +405,25 @@ export const AuthProvider = ({ children }) => {
         }),
         [
             state,
-            login,
-            verifyCode,
-            logout,
+            organizations,
+            sendOtpToEmail,
+            verifyOtpWithEmail,
+            createAccountWithEmailOtp,
+            verifyAccountCreationOtp,
             loadOrganizations,
             switchOrganization,
             getCurrentOrganization,
-            updateDriverMeta,
-            updateDriver,
             reloadDriver,
             trackDriver,
             trackDriverLocation,
-            organizations,
-            storedDriver,
+            toggleOnline,
+            setDriver,
+            logout,
+            createDriverSession,
+            syncDevice,
+            registerDevice,
+            updateDriverMeta,
+            updateDriver,
             authToken,
         ]
     );

@@ -1,6 +1,6 @@
 import Fleetbase from '@fleetbase/sdk';
-import { get, getString } from 'storage';
 import { isObject } from 'utils';
+import { get, getString } from 'storage';
 import config from '../config';
 
 const useFleetbase = (namespace) => {

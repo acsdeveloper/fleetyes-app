@@ -1,23 +1,7 @@
-import React from 'react';
-import { Button } from 'tamagui';
+import { faApple, faFacebook, faGoogle, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome';
-import { faFacebook, faInstagram, faGoogle, faApple } from '@fortawesome/free-brands-svg-icons';
-import { faPhone } from '@fortawesome/free-solid-svg-icons';
 import LinearGradient from 'react-native-linear-gradient';
-import { useTheme } from 'tamagui';
-
-export const PhoneLoginButton = ({ onPress, ...props }) => {
-    const theme = useTheme();
-
-    return (
-        <Button onPress={onPress} bg='$subsurface' borderWidth={1} borderColor='$borderColor' width='100%' {...props} rounded>
-            <Button.Icon>
-                <FontAwesomeIcon icon={faPhone} color={theme['$textPrimary'].val} />
-            </Button.Icon>
-            <Button.Text color='$textPrimary'>Continue with Phone</Button.Text>
-        </Button>
-    );
-};
+import { Button, useTheme } from 'tamagui';
 
 export const AppleLoginButton = ({ onPress, ...props }) => {
     const theme = useTheme();
