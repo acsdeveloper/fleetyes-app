@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@v4
       - name: Add Secrets
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/fleetyes.keystore
           cd android
           ls -la
       - name: Generate google-services.json
