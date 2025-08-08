@@ -5,7 +5,7 @@ import { useFleetbase } from 'hooks';
 import type { Node } from 'react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Text, View } from 'react-native';
-import 'react-native-gesture-handler';
+// import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import Toast from 'react-native-toast-message';
 import { EventRegister } from 'react-native-event-listeners';
