@@ -21,7 +21,11 @@ jobs:
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
-        
+      - name: Add Secrets
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/upload-keystore.jks
+          cd android
+          ls -la
       - name: Generate google-services.json
         env:
             GOOGLE_SERVICES_JSON: ${{ secrets.STOREFRONT_GOOGLE_SERVICES_JSON }}
