@@ -1,5 +1,5 @@
 import React from 'react';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+// import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { TamaguiProvider, Theme } from 'tamagui';
 import { Toasts } from '@backpackapp-io/react-native-toast';
 import { PortalProvider, PortalHost } from '@gorhom/portal';
@@ -24,7 +24,7 @@ function AppContent(): React.JSX.Element {
     return (
         <TamaguiProvider config={config} theme={appTheme}>
             <Theme name={appTheme}>
-                <GestureHandlerRootView style={{ flex: 1 }}>
+                {/* <GestureHandlerRootView style={{ flex: 1 }}>
                     <SafeAreaProvider>
                         <BottomSheetModalProvider>
                             <ConfigProvider>
@@ -52,7 +52,7 @@ function AppContent(): React.JSX.Element {
                             </ConfigProvider>
                         </BottomSheetModalProvider>
                     </SafeAreaProvider>
-                </GestureHandlerRootView>
+                </GestureHandlerRootView> */}
             </Theme>
         </TamaguiProvider>
     );
