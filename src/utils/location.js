@@ -1,13 +1,13 @@
-import BackgroundGeolocation from 'react-native-background-geolocation';
-import { Platform } from 'react-native';
-import { EventRegister } from 'react-native-event-listeners';
-import { checkMultiple, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+// import BackgroundGeolocation from 'react-native-background-geolocation';
 import { GoogleAddress, Place, Point } from '@fleetbase/sdk';
 import { StoreLocation } from '@fleetbase/storefront';
-import { haversine } from './math';
-import { config, uniqueArray, isObject, isArray, isEmpty, isResource, isSerializedResource, isPojoResource } from './';
-import storage from './storage';
 import axios from 'axios';
+import { PermissionsAndroid, Platform } from 'react-native';
+import { EventRegister } from 'react-native-event-listeners';
+import Geolocation from 'react-native-geolocation-service';
+import { config, isArray, isEmpty, isObject, isPojoResource, isResource, isSerializedResource, uniqueArray } from './';
+import { haversine } from './math';
+import storage from './storage';
 
 const emit = EventRegister.emit;
 
@@ -214,83 +214,180 @@ export function serializGoogleAddress(googleAddress) {
     return attributes;
 }
 
+// export async function getLiveLocation(adapter) {
+//     return new Promise((resolve) => {
+//         BackgroundGeolocation.getCurrentPosition(
+//             {
+//                 samples: 3,
+//                 desiredAccuracy: 1,
+//                 extras: {
+//                     event: 'getCurrentPosition',
+//                 },
+//             },
+//             async (position) => {
+//                 const { latitude, longitude } = position.coords;
+
+//                 // Save the last known coordinates
+//                 storage.setArray('_last_known_position', [latitude, longitude]);
+
+//                 try {
+//                     const details = await geocode(latitude, longitude);
+//                     const place = createFleetbasePlaceFromDetails(details, { position }, adapter);
+
+//                     // Save the last known location
+//                     storage.setMap('_last_known_location', place.serialize());
+
+//                     resolve(place);
+//                 } catch (error) {
+//                     const place = new Place({ location: new Point(latitude, longitude), meta: { position } });
+
+//                     // Save the last known location
+//                     storage.setMap('_last_known_location', place.serialize());
+
+//                     resolve(place);
+//                 }
+//             },
+//             (error) => resolve(null),
+//             { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+//         );
+//     });
+// }
+
+// export async function getCurrentLocation(adapter) {
+//     const lastLocation = restoreFleetbasePlace(storage.getMap('_current_location'), adapter);
+
+//     return new Promise((resolve) => {
+//         BackgroundGeolocation.getCurrentPosition(
+//             {
+//                 samples: 3,
+//                 desiredAccuracy: 1,
+//                 extras: {
+//                     event: 'getCurrentPosition',
+//                 },
+//             },
+//             async (position) => {
+//                 const { latitude, longitude } = position.coords;
+
+//                 // Save the last known coordinates
+//                 storage.setArray('_last_known_position', [latitude, longitude]);
+
+//                 // Check if user has moved more than 200 meters from the last location
+//                 if (lastLocation && haversine([latitude, longitude], lastLocation.getAttribute('location')) > 200) {
+//                     return resolve(lastLocation);
+//                 }
+
+//                 try {
+//                     const details = await geocode(latitude, longitude);
+//                     const place = createFleetbasePlaceFromDetails(details, { position }, adapter);
+
+//                     storage.setMap('_current_location', place.serialize());
+//                     resolve(place);
+//                 } catch (error) {
+//                     const place = new Place({ location: new Point(latitude, longitude), meta: { position } });
+
+//                     storage.setMap('_current_location', place.serialize());
+//                     resolve(place);
+//                 }
+//             },
+//             (error) => resolve(null),
+//             { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+//         );
+//     });
+// }
+
+async function requestLocationPermission() {
+    if (Platform.OS === 'android') {
+        const granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+    }
+    return true; // iOS handles it differently via Info.plist
+}
+
 export async function getLiveLocation(adapter) {
+    const hasPermission = await requestLocationPermission();
+    if (!hasPermission) return null;
+
     return new Promise((resolve) => {
-        BackgroundGeolocation.getCurrentPosition(
-            {
-                samples: 3,
-                desiredAccuracy: 1,
-                extras: {
-                    event: 'getCurrentPosition',
-                },
-            },
+        Geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
 
-                // Save the last known coordinates
                 storage.setArray('_last_known_position', [latitude, longitude]);
 
                 try {
                     const details = await geocode(latitude, longitude);
                     const place = createFleetbasePlaceFromDetails(details, { position }, adapter);
-
-                    // Save the last known location
                     storage.setMap('_last_known_location', place.serialize());
-
                     resolve(place);
                 } catch (error) {
                     const place = new Place({ location: new Point(latitude, longitude), meta: { position } });
-
-                    // Save the last known location
                     storage.setMap('_last_known_location', place.serialize());
-
                     resolve(place);
                 }
             },
-            (error) => resolve(null),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+            (error) => {
+                console.log('Geolocation error', error);
+                resolve(null);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 10000,
+                forceRequestLocation: true, // ensure a fresh reading
+                showLocationDialog: true,
+            }
         );
     });
 }
 
 export async function getCurrentLocation(adapter) {
     const lastLocation = restoreFleetbasePlace(storage.getMap('_current_location'), adapter);
+    const hasPermission = await requestLocationPermission();
+
+    if (!hasPermission) return lastLocation ?? null;
 
     return new Promise((resolve) => {
-        BackgroundGeolocation.getCurrentPosition(
-            {
-                samples: 3,
-                desiredAccuracy: 1,
-                extras: {
-                    event: 'getCurrentPosition',
-                },
-            },
+        Geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
 
-                // Save the last known coordinates
                 storage.setArray('_last_known_position', [latitude, longitude]);
 
-                // Check if user has moved more than 200 meters from the last location
-                if (lastLocation && haversine([latitude, longitude], lastLocation.getAttribute('location')) > 200) {
+                // Check if user moved more than 200 meters from last location
+                if (
+                    lastLocation &&
+                    haversine([latitude, longitude], lastLocation.getAttribute('location')) < 200
+                ) {
                     return resolve(lastLocation);
                 }
 
                 try {
                     const details = await geocode(latitude, longitude);
                     const place = createFleetbasePlaceFromDetails(details, { position }, adapter);
-
                     storage.setMap('_current_location', place.serialize());
                     resolve(place);
                 } catch (error) {
-                    const place = new Place({ location: new Point(latitude, longitude), meta: { position } });
-
+                    const place = new Place({
+                        location: new Point(latitude, longitude),
+                        meta: { position },
+                    });
                     storage.setMap('_current_location', place.serialize());
                     resolve(place);
                 }
             },
-            (error) => resolve(null),
-            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+            (error) => {
+                console.log('Geolocation error', error);
+                resolve(lastLocation ?? null);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 15000,
+                maximumAge: 10000,
+                forceRequestLocation: true,
+                showLocationDialog: true,
+            }
         );
     });
 }
